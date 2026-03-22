@@ -1,0 +1,320 @@
+% Czech and fonts
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc} 
+\usepackage[czech]{babel}
+\usepackage{lmodern}
+
+% Margins and colors
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{graphicx} 
+\usepackage{xcolor} 
+
+% Formating of pseudocode 
+\usepackage{listings} 
+\lstset{ backgroundcolor=\color{white}, basicstyle=\ttfamily\small, breaklines=true, frame=none, xleftmargin=1cm, xrightmargin=0.5cm, aboveskip=4pt, belowskip=4pt, }
+
+% Set algorithms 
+\usepackage{algorithm} 
+\usepackage{algpseudocode} 
+\floatname{algorithm}{Algorithm} 
+\renewcommand{\algorithmicrequire}{\textbf{Input:}} 
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+% Hyperlinks 
+\usepackage[hidelinks]{hyperref}
+
+% Set header and footer 
+\usepackage{fancyhdr} 
+\pagestyle{fancy} 
+\fancyhf{} 
+\renewcommand{\headrulewidth}{0.4pt} 
+\renewcommand{\footrulewidth}{0pt} 
+\fancyhead[C]{\small\itshape Algoritmy počítačové kartografie \quad Point Location Problem} 
+\fancyfoot[C]{\thepage}
+
+% Set spacing
+\usepackage{setspace} 
+\setstretch{1.5}
+
+\usepackage{amsmath}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+
+    {\large Přírodovědecká fakulta}\\[0.3cm]
+    {\large Univerzita Karlova}\\[3cm]
+
+    \includegraphics[width=0.425\textwidth]{image.png}\\[4cm]
+
+    {\large Algoritmy počítačové kartografie}\\[0.5cm]
+    {\LARGE\bfseries Point Location Problem}\\[4cm]
+
+    {\large Kristýna Antošová, Vít Kadlec}\\[0.5cm]
+    {\normalsize 1.N-GKDPZ}\\[0.3cm]
+    {\normalsize 16. 3. 2026, Praha}
+
+    \vfill
+\end{titlepage}
+
+% Assignment 
+\section{Zadání}
+\medskip 
+\begin{figure}[h!] 
+\centering 
+\includegraphics[width=\textwidth]{zadani.png} 
+\end{figure}
+\noindent V rámci zadání byly řešeny tyto bonusové úlohy:
+\begin{figure}[h!] 
+\includegraphics[width=\textwidth]{tabulka_hodnoceni.png} 
+\end{figure} 
+\newpage
+
+% Technical report 
+\section{Popis a rozbor problému}
+\subsection{Point Location Problem}
+Problém určení polohy bodu, známý také jako Point Location Problem, se zabývá zjišťováním prostorového vztahu mezi daným bodem a polygonem či množinou polygonů. Tento problém nachází uplatnění v celé řadě oblastí, nejenom v oblasti geoinformatiky, ale také v počítačové grafice, robotice či databázích.
+
+K řešení této úlohy lze postupovat lokálně nebo globálně. Při lokální proceduře opakovaně zjišťujeme, zda dotazovaný bod leží uvnitř, vně nebo na hraně daného mnohoúhelníku. Při globální proceduře hodnotíme polohu bodu vůči celé množině mnohoúhelníků. Výsledkem analýzy je zjištění, že bod leží uvnitř jednoho z nich, vně všech, nebo se nachází na hraně či uzlu dvou a více polygonů.
+
+Algoritmy řešící tento problém lze rozdělit podle tvaru polygonu. Pro konvexní mnohoúhelníky, tedy ty, které nemají vnitřní úhly větší než 180°, lze využít metody jako Half-plane Test nebo Ray Crossing. V geoinformatice a kartografii se však mnohem častěji setkáme s nekonvexními mnohoúhelníky, které mají alespoň jeden vnitřní úhel větší než 180°. Pro ty je vhodné použít algoritmy Winding Number nebo Ray Crossing.
+
+\subsection{Winding Number Method} 
+
+Metoda Winding Number, také nazývána jako metoda ovíjení, zjišťuje, kolikrát se polygon otočí kolem daného bodu $q$. Výsledná hodnota $\Omega$ je součet všech úhlů, které svírá pozorovaný bod $q$ s jednotlivými hranami polygonu. Pokud je hodnota $\Omega$ nenulová, bod $q$ leží uvnitř polygonu $P$. Pokud je rovna nule, bod leží mimo polygon:
+
+\begin{equation} 
+\Omega(q, P) = \frac{1}{2\pi} \sum_{i=1}^{n} \omega(p_i, q, p_{i+1}) = 
+\begin{cases} 
+1, & q \in P \\ 
+0, & q \notin P 
+\end{cases} 
+\end{equation}
+
+Pro výpočet polohy bodu $q$ vůči přímce dané hranou $p_i p_{i+1}$ pracujeme se směrovými vektory vedenými z bodu ke zkoumaným vrcholům. Přímka $p$ rozděluje rovinu na levou polorovinu $\sigma_l$ a pravou polorovinu $\sigma_r$. To, zda je výsledek přičítán či odečítán, závisí na polorovině, což se zjišťuje výpočtem determinantu, který funguje jako ekvivalent vektorového součinu. V levé polorovině se úhly přičítají (rotace proti směru hodinových ručiček), v pravé se odečítají (rotace po směru). Výsledná hodnota $\Omega$ je udávána v násobcích $2\pi$.
+
+\begin{equation} 
+t = \begin{vmatrix} p_x & p_y \\ v_x & v_y \end{vmatrix} = 
+\begin{cases} 
+> 0, & q \in \sigma_l \\ 
+= 0, & q \in p \\ 
+< 0, & q \in \sigma_r 
+\end{cases} 
+\end{equation}
+
+Nevýhodou tohoto algoritmu oproti metodě Ray Crossing je celkově vyšší časová náročnost, přináší nám však lepší ošetření singulárních případů.
+
+\begin{figure}[h!] 
+\centering 
+\includegraphics[width=0.425\textwidth]{winding_number.png} 
+\caption{\textit{Winding Number Algorithm (zdroj: Liu et al. 2023)}} 
+\end{figure}
+
+\subsection{Ray Crossing Algorithm}
+
+Při této metodě je zkoumaným bodem $q$ vedena v libovolném směru polopřímka $r$. Určující je počet průsečíků této polopřímky s hranami polygonu $P$. Počet průsečíků označujeme $k$ a pokud je jeho hodnota lichá, bod leží uvnitř polygonu $P$. Pokud je sudá, bod leží vně polygonu:
+
+\begin{equation} 
+k \bmod 2 = 
+\begin{cases} 
+0, & q \notin P \\ 
+1, & q \in P 
+\end{cases} 
+\end{equation}
+
+\begin{figure}[h!]
+\centering
+\includegraphics[width=0.425\textwidth]{Ray_crossing.png}
+\caption{\textit{Ray Crossing Algorithm (zdroj: Kumar 2024)}}
+\end{figure}
+
+
+\section{Singulární případy a jejich ošetření}
+
+\subsection{Bod na vrcholu polygonu}
+
+U obou algoritmů je singulární případ, kdy je bod $q$ totožný s některým vrcholem polygonu, ošetřen porovnáním souřadnic bodu a jednotlivých vrcholů pomocí metody \texttt{isPointOnVertex()}. Před samotným výpočtem $\Omega$ či $k$ iterujeme přes všechny vrcholy polygonu a pokud jsou obě složky souřadnicového rozdílu menší než pixelová tolerance $TOL = 3\,\text{px}$, je vrácen výsledek $-1$:
+
+\begin{equation}
+    |x_q - x_i| < \varepsilon \quad \wedge \quad |y_q - y_i| < \varepsilon \implies q \equiv p_i
+\end{equation}
+
+\subsection{Bod na hraně polygonu -- Winding Number}
+
+U algoritmu Winding Number je detekce hrany provedena v metodách \texttt{getHalfPlane()} a \texttt{getAngle()} a je založena na dvou podmínkách, které musí platit současně. Za prvé musí bod $q$ ležet na přímce $p_i p_{i+1}$, což se ověřuje normalizovaným determinantem $t$ -- determinant je vydělen délkou hrany, čímž se získá kolmá vzdálenost bodu od přímky v pixelech:
+
+\begin{equation}
+    t = (x_{i+1} - x_i)(y_q - y_i) - (y_{i+1} - y_i)(x_q - x_i)
+\end{equation}
+
+Za druhé musí být úhel $\omega_i$ mezi vektory z $q$ do $p_i$ a z $q$ do $p_{i+1}$ roven $\pi$, což zaručuje, že bod leží přímo mezi vrcholy hrany a nikoliv na jejím prodloužení. Obě podmínky jsou testovány s tolerancí $e = 0{,}05$:
+
+\begin{equation}
+    \frac{|t|}{|p_{i+1} - p_i|} < e \quad \wedge \quad |\omega_i - \pi| < e \implies q \in \partial P
+\end{equation}
+
+\subsection{Bod na hraně polygonu -- Ray Crossing}
+
+
+U algoritmu Ray Crossing je detekce hrany realizována pomocí dvou paprsků s opačnou orientací -- levostranného $r_l$ a pravostranného $r_r$. Souřadnice vrcholů polygonu jsou redukovány posunutím počátku souřadnicového systému do bodu $q$. Pro každou hranu zvlášť se spočítá počet průsečíků s polygonem, tedy $k_l$ a $k_r$. Pokud bod leží na hraně polygonu, počet průsečíků se bude mezi dvěma paprsky lišit:
+
+\begin{equation}
+    q =
+    \begin{cases}
+        \in \partial P, & k_l\,\%\,2 \neq k_r\,\%\,2 \\
+        \in P,          & k_r\,\%\,2 = 1 \\
+        \notin P,       & \text{jinak}
+    \end{cases}
+\end{equation}
+
+\subsection{Zvýraznění polygonů při singulárních případech}
+
+A aplikaci je zvýrazněn polygon obsahující bod a zároveň pokud bod leží na vrcholu nebo hraně sdílené více polygony, jsou zvýrazněny všechny takové polygony. Při detekci singularity se polygon přidá do seznamu zvýrazněných polygonů, ale iterace přes zbývající polygony pokračuje, aby byly nalezeny všechny polygony sdílející daný vrchol či hranu. Jejich indexy jsou průběžně ukládány do seznamu \texttt{highlighted} v \texttt{MainForm} a předány metodě \texttt{setHighlighted()} třídy \texttt{Draw}. Zvýrazněné polygony mají tyrkysovou výplň (\texttt{Qt.GlobalColor.cyan}).
+
+\section{Popis algoritmů formálním jazykem}
+
+\subsection{Winding Number Algorithm}
+
+Tato sekce uvádí pseudokódy, které věrně odrážejí implementační detaily algoritmů.
+
+\begin{algorithm}[H] \caption{Winding Number} 
+\begin{algorithmic}[1]
+\Require point $q$, polygon $pol$ 
+\Ensure $-1$ (vertex) $|$ $-2$ (edge) $|$ $0$ (outside) $|$ $1$ (inside)
+\For{each vertex $p_i$ of polygon}
+    \If{$|x_q - x_i| < \varepsilon$ \textbf{ and } $|y_q - y_i| < \varepsilon$} \Return $-1$ \EndIf
+\EndFor
+\State $\omega_\text{sum} \gets 0$
+\For{each edge $(p_i, p_{i+1})$}
+    \State $t \gets \texttt{getHalfPlane}(q, p_i, p_{i+1})$
+    \State $\omega_i \gets \texttt{getAngle}(q, p_i, p_{i+1})$
+    \State $\ell \gets |p_{i+1} - p_i|$
+    \If{$\ell > 0$ \textbf{ and } $|t| / \ell < e$ \textbf{ and } $|\omega_i - \pi| < e$} \Return $-2$ \EndIf
+    \If{$t > 0$} $\omega_\text{sum} \mathrel{+}= \omega_i$
+    \Else{} $\omega_\text{sum} \mathrel{-}= \omega_i$
+    \EndIf
+\EndFor
+\If{$\text{round}(\omega_\text{sum} / 2\pi) \neq 0$} \Return $1$ \Else{} \Return $0$ \EndIf
+\end{algorithmic} 
+\end{algorithm}
+
+\subsection{Ray Crossing Algorithm}
+
+\begin{algorithm}[H] \caption{Ray Crossing} 
+\begin{algorithmic}[1]
+\Require point $q$, polygon $pol$ 
+\Ensure $-1$ (vertex) $|$ $-2$ (edge) $|$ $0$ (outside) $|$ $1$ (inside)
+\For{each vertex $p_i$ of polygon}
+    \If{$|x_q - x_i| < \varepsilon$ \textbf{ and } $|y_q - y_i| < \varepsilon$} \Return $-1$ \EndIf
+\EndFor
+\State $k_l \gets 0$, $k_r \gets 0$
+\For{each edge $(p_i, p_{i+1})$ in coordinates shifted by $q$}
+    \If{$(y_{i+1} - y_i) = 0$} \textbf{continue} \EndIf
+    \State $x_m \gets (x_{i+1} \cdot y_i - x_i \cdot y_{i+1}) / (y_{i+1} - y_i)$
+    \If{$(y_{i+1} < 0) \neq (y_i < 0)$ \textbf{ and } $x_m < 0$} $k_l \mathrel{+}= 1$ \EndIf
+    \If{$(y_{i+1} > 0) \neq (y_i > 0)$ \textbf{ and } $x_m > 0$} $k_r \mathrel{+}= 1$ \EndIf
+\EndFor
+\If{$k_l \bmod 2 \neq k_r \bmod 2$} \Return $-2$ \EndIf
+\If{$k_r \bmod 2 = 1$} \Return $1$ \Else{} \Return $0$ \EndIf
+\end{algorithmic} 
+\end{algorithm} 
+
+\section{Rychlé vyhledávání pomocí min-max boxu}
+Před spuštěním samotných algoritmů RC a WN je pro každý polygon testováno, zda bod $q$ leží uvnitř jeho osově zarovnaného ohraničujícího obdélníku, tedy min-max boxu. Tento obdélník je definován minimálními a maximálními souřadnicemi $x$ a $y$ ze všech vrcholů polygonu. Pokud bod neleží v žádném min-max boxu, algoritmy RC a WN se nespouštějí a uživatel je na tuto situaci upozorněn. Tím je výrazně snížena výpočetní náročnost.
+
+\newpage
+
+\section{Řešení pro polygony s dírami}
+Další řešenou úlohou bylo správné ošetření polygonů, které obsahují díry. Řešení této problematiky je rozděleno mezi třídy \texttt{Draw} a \texttt{MainForm}.
+
+\subsection{Vizualizace děr (třída Draw)}
+Při načítání ze souboru shapefile jsou pro každý dotčený polygon zpracovány nejen jeho vnější hranice (exterior rings), ale i všechny případné interior rings, tedy díry. Z každého polygonu je vytvořen objekt \texttt{QPainterPath} s pravidlem vykreslování \texttt{OddEvenFill}. Návrh tohoto konkrétního postupu pro korektní vizualizaci děr pomocí knihovny Qt byl konzultován s umělou inteligencí, konkrétně LLM Claude Sonnet 4.6. Exterior ring je přidán jako první subpath a po něm následují všechny interior ringy. Knihovna Qt díky pravidlu Even-Odd místa vnitřního překryvu nevyplní.
+
+Exterior polygony jsou ukládány do seznamu \texttt{\_\_shp\_polygons} a interior ringy jsou ukádány odděleně do proměnné \texttt{\_\_shp\_holes} jako seznam seznamů, tedy jeden vnořený seznam pro každý načtený polygon. Vykreslovací cesty se ukládají v proměnné \texttt{\_\_shp\_paths}. V samotné metodě \texttt{paintEvent} se následně volá \texttt{drawPath()} místo \texttt{drawPolygon()}, což vede ke korektnímu vykreslení děr.
+
+\subsection{Analýza polohy bodu u polygonů s dírami (třída MainForm)}
+Metoda \texttt{analyzePointAndPositionClick()} využívá getter \texttt{getPolygonsData()}, který vrací seznam tuplů ve formátu \texttt{(exterior QPolygonF, [hole QPolygonF, ...])}. Návrh vnořené logiky pro vyhodnocování polohy bodu vůči dírám a ošetření hraničních singularit byl v rámci tohoto projektu vypracován za asistence LLM Claude Sonnet 4.6. Analýza přítomných děr probíhá následovně:
+
+\begin{itemize} 
+\item Pokud výpočet nad dírou vrátí $-1$ nebo $-2$ -- bod leží na hranici díry, polygon je zvýrazněn a status bodu je nastaven přímo uvnitř iterace přes díry. \item Pokud díra vrátí $1$ -- bod leží uvnitř díry, příslušný polygon se přeskočí a bod je hodnocen jako bod mimo polygon. 
+\item Pokud žádná z děr nevrátí pozitivní shodu -- bod leží skutečně uvnitř polygonu, výsledek je $1$. 
+\end{itemize}
+
+\section{Vstupní data a Aplikace}
+Vstupními daty je polygonová vrstva ve formátu shapefile, která je otevřena pomocí knihovny GeoPandas. Geografické souřadnice jsou převedeny do souřadnic obrazovky -- přizpůsobeny velikosti okna aplikace. Osa y je přitom otočena, protože v geografii roste směrem nahoru, zatímco na obrazovce směrem dolů. Po načtení shapefilu se aplikace automaticky přepne do režimu vkládání bodu a tlačítko \textit{Point/Polygon} je deaktivováno, aby nebylo možné manuálně kreslit polygon přes data ze shapefilu. Aplikace byla testována na datech jižní Afriky ve formátu shapefile, obsahujících polygony administrativních hranic. Na těchto datech bylo ověřeno správné fungování obou algoritmů včetně detekce singulárních případů a zpracování polygonů s dírami.
+
+Po spuštění skriptu \textit{MainForm.py} se otevře okno aplikace. Aplikace má tři záložky. V záložce \textit{File} jsou umístěny funkce \textit{Open} a \textit{Exit}, v záložce \textit{Input} funkce \textit{Point/Polygon}, \textit{Clear Results} a \textit{Clear Data} a poslední záložka \textit{Analyze} obsahuje funkce algoritmů \textit{Winding Number} a \textit{Ray Crossing}. Ikony všech funkcí jsou umístěny na nástrojové liště.
+
+Po kliknutí na funkci \textit{Open} se otevře nabídka pro vybrání souboru ve formátu shapefile. Pro umístění bodu na mapu stačí kliknout na libovolné místo v aplikaci. Jestliže není otevřen shapefile soubor a pokud je zakliknuta funkce \textit{Point/Polygon}, lze kreslit vlastní polygon. Po umístění analyzovaného bodu a spuštění příslušné metody se otevře dialogové okno s informací o poloze bodu a zvýrazní se polygon, jemuž bod náleží či více polygonů, pokud je bod umístěn na jejich hranu či vrchol.
+
+Kliknutím na \textit{Clear Results} je smazán nakreslený bod a zvýraznění po kliknutí na \textit{Clear Data} se smažou veškerá data a tlačítko \textit{Point/Polygon} je znovu aktivováno. Aplikaci lze ukončit funkcí \textit{Exit}. 
+
+\begin{figure}[h!] 
+\centering 
+\includegraphics[width=\textwidth]{GUI_ukazka.png} 
+\caption{\textit{Ukázka Aplikace}} 
+\end{figure}
+
+\newpage
+\section{Dokumentace}
+
+\subsection{Třída Algorithms (\texttt{algorithms.py})}
+Třída \texttt{Algorithms} obsahuje logiku geometrické analýzy. Metody přijímají argumenty typu \texttt{QPointF} a \texttt{QPolygonF}.
+
+\begin{itemize}
+\item \texttt{isPointOnVertex(q, p)} -- porovná souřadnice bodu $q$ a vrcholu $p$ s pixelovou tolerancí \texttt{TOL = 3.0}. Vrátí \texttt{True} pokud je bod v této toleranci.
+\item \texttt{getHalfPlane(q, p1, p2)} -- vypočítá determinant pro test poloroviny. Kladná hodnota znamená levou polorovinu, záporná pravou. Nula znamená, že bod leží na přímce hrany.
+\item \texttt{getAngle(q, p1, p2)} -- vypočítá absolutní úhel mezi vektory $q \to p_1$ a $q \to p_2$ pomocí \texttt{atan2}, normalizovaný do $(-\pi, \pi]$.
+\item \texttt{isPointInMinMaxBox(q, pol)} -- testuje, zda bod $q$ leží uvnitř ohraničujícího obdélníku polygonu. Slouží jako rychlý filtr před spuštěním složitějšího algoritmu.
+\item \texttt{getPointPolygonPositionWN(q, pol)} -- analýza metodou Winding Number. Vrací $-1$ (vrchol), $-2$ (hrana), $0$ (vně) nebo $1$ (uvnitř).
+\item \texttt{getPointPolygonPositionRC(q, pol)} -- analýza metodou Ray Crossing. Vrací $-1$ (vrchol), $-2$ (hrana), $0$ (vně) nebo $1$ (uvnitř).
+\end{itemize}
+
+\newpage
+\subsection{Třída Draw (\texttt{draw.py})}
+Třída \texttt{Draw} zajišťuje veškeré grafické operace.
+
+\begin{itemize}
+\item\texttt{loadShapefile(file\_name)} -- načítá SHP soubor přes GeoPandas podle zadané cesty, zpracovává jeho geometrie, normalizuje souřadnice a sestavuje \texttt{QPainterPath}. Po načtení SHP automaticky přepne do režimu vkládání bodu.
+\item \texttt{paintEvent(e)} -- vykreslí polygony ze shapefilu pomocí metody \texttt{drawPath()}. Polygony, které byly algoritmem vyhodnoceny jako pozitivní, jsou zvýrazněny tyrkysovou výplní. Samotný analyzovaný bod $q$ je vykreslen červenou barvou.
+\item \texttt{mousePressEvent(e)} -- při kliknutí přidá vrchol manuálního polygonu nebo přesune bod $q$ a resetuje zvýraznění.
+\item \texttt{setHighlighted(indices)} -- nastaví seznam indexů zvýrazněných polygonů a překreslí canvas.
+\item \texttt{clearResults()} -- smaže bod $q$ a zvýraznění, polygony zachová.
+\item \texttt{clearData()} -- smaže veškerá data včetně polygonů.
+\item \texttt{getPolygonsData()} -- vrátí seznam tuplů \texttt{(exterior QPolygonF, [hole QPolygonF, ...])} pro analýzu, nebo manuální polygon s prázdným seznamem děr.
+\end{itemize}
+
+\newpage
+\subsection{Třída MainForm (\texttt{MainForm.py})}
+Třída \texttt{MainForm} řídí inicializaci hlavního okna a propojuje třídy \texttt{Draw} a \texttt{Algorithms}.
+
+\begin{itemize}
+\item \texttt{analyzePointAndPositionClick(method)} -- sdílená analytická logika pro RC i WN. Iteruje přes polygony, aplikuje min-max filtr, spouští zvolený algoritmus, ošetřuje díry a předává výsledky do \texttt{Draw}.
+\item \texttt{rayCrossingClick()} -- zavolá \texttt{analyzePointAndPositionClick("rc")}.
+\item \texttt{windingNumberClick()} -- zavolá \texttt{analyzePointAndPositionClick("wn")}.
+\item \texttt{openClick()} -- otevře dialog pro výběr souboru, zavolá \texttt{loadShapefile(file\_name)} třídy \texttt{Draw} a deaktivuje přepínač \textit{Point/Polygon}.
+\item \texttt{changeStatusClick()} -- přepne vstupní režim (bod / vrchol polygonu).
+\item \texttt{clearClick()} -- zavolá \texttt{clearData()} a znovu aktivuje přepínač \textit{Point/Polygon}.
+\end{itemize}
+
+\section{Závěr}
+Pro řešenou úlohu bylo naimplementovo řešení využívající metody Ray Crossing a Winding Number pro řešení problému Point Location. Oba algoritmy úspěšně rozlišují prostorové stavy uvnitř, vně a na hranici polygonu. Singulární případy byly ošetřeny -- detekce vrcholu je provedena geometricky na bázi porovnání souřadnic s pixelovou tolerancí, detekce hrany u algoritmů WN i RC byla řešena matematicky. Pro WN podmínkou normalizovaného $t$ a $\omega \approx \pi$ s tolerancí $e = 0{,}05$, pro RC podmínkou různé parity $k_l$ a $k_r$.
+
+Jako bonusové úlohy bylo implementováno rychlé vyhledávání pomocí min-max boxu, načítání dat ze shapefile, zvýrazňování polygonů a řešení polygonů s dírami. Problematika děr je řešena vizuálně pomocí \texttt{QPainterPath} s pravidlem \texttt{OddEvenFill} a analyticky opakovaným voláním algoritmů na interior ringy v \texttt{MainForm}. Tímto postupem nebylo nutné zasahovat do třídy \texttt{Algorithms}.
+
+\newpage
+\renewcommand{\refname}{Zdroje} 
+\begin{thebibliography}{9}
+
+\bibitem{bayer2026} BAYER, T. (2026): \textit{Point Location Problem}. Přednáška pro předmět Algoritmy počítačové kartografie, Katedra aplikované geoinformatiky a kartografie, Přírodovědecká fakulta UK. Dostupné z: \url{https://web.natur.cuni.cz/~bayertom}
+\bibitem{deberg2000} DE BERG, M., VAN KREVELD, M., OVERMARS, M., SCHWARZKOPF, O. (2000): \textit{Computational Geometry}. Springer.
+\bibitem{kumar2024}
+KUMAR, A. (2024): \textit{CG Notes -- Ray Tracing: Ray-Polygon Intersection}. Dostupné z: \url{https://anirudh-s-kumar.github.io/CG-Notes/ray_tracing/}
+\bibitem{liu2023} LIU, L., SUN, Y., JI, M., WANG, H., LIU, J. (2023): Efficient Construction of Voxel Models for Ore Bodies Using an Improved Winding Number Algorithm and CUDA Parallel Computing. \textit{ISPRS International Journal of Geo-Information}, 12, 12, 473. \url{https://doi.org/10.3390/ijgi12120473}
+\bibitem{qt} Qt Group (2025): \textit{Qt Documentation}. \url{https://doc.qt.io/}
+
+\end{thebibliography}
+\end{document}
