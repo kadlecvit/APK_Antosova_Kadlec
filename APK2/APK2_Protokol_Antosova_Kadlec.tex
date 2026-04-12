@@ -1,0 +1,456 @@
+% Czech and fonts
+\documentclass[11pt, a4paper]{article}
+\usepackage[utf8]{inputenc} 
+\usepackage[T1]{fontenc} 
+\usepackage[czech]{babel}
+\usepackage{lmodern}
+
+% Margins and colors
+\usepackage[top=2.5cm, bottom=2.5cm, left=3cm, right=2.5cm]{geometry}
+\usepackage{graphicx} 
+\usepackage{xcolor} 
+
+% Formating of pseudocode 
+\usepackage{listings} 
+\lstset{ backgroundcolor=\color{white}, basicstyle=\ttfamily\small, breaklines=true, frame=none, xleftmargin=1cm, xrightmargin=0.5cm, aboveskip=4pt, belowskip=4pt, }
+
+% Set algorithms 
+\usepackage{algorithm} 
+\usepackage{algpseudocode} 
+\usepackage{float} % Nutne pro parametr [H] u obrazku
+\floatname{algorithm}{Algorithm} 
+\renewcommand{\algorithmicrequire}{\textbf{Input:}} 
+\renewcommand{\algorithmicensure}{\textbf{Output:}}
+
+% Hyperlinks 
+\usepackage[hidelinks]{hyperref}
+
+% Set header and footer 
+\usepackage{fancyhdr} 
+\pagestyle{fancy} 
+\fancyhf{} 
+\renewcommand{\headrulewidth}{0.4pt} 
+\renewcommand{\footrulewidth}{0pt} 
+\fancyhead[C]{\small\itshape Algoritmy počítačové kartografie \quad Generalizace budov LOD0} 
+\fancyfoot[C]{\thepage}
+
+% Set spacing
+\usepackage{setspace} 
+\setstretch{1.5}
+
+\usepackage{amsmath}
+
+\begin{document}
+
+% Title page
+\begin{titlepage}
+    \centering
+
+    {\large Přírodovědecká fakulta}\\[0.3cm]
+    {\large Univerzita Karlova}\\[3cm]
+
+    \includegraphics[width=0.425\textwidth]{image.png}\\[4cm]
+
+    {\large Algoritmy počítačové kartografie}\\[0.5cm]
+    {\LARGE\bfseries Generalizace budov LOD0}\\[4cm]
+
+    {\large Kristýna Antošová, Vít Kadlec}\\[0.5cm]
+    {\normalsize 1.N-GKDPZ}\\[0.3cm]
+    {\normalsize Praha 2026}
+
+    \vfill
+\end{titlepage}
+
+% Assignment 
+\section{Zadání}
+\medskip 
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=\textwidth]{zadani.png} 
+\end{figure}
+\noindent V rámci zadání byly řešeny všechny výše zmíněné bonusové úlohy.
+\newpage
+
+% Technical report 
+\section{Popis a rozbor problému}
+
+\subsection{Generalizace budov}
+Generalizací se rozumí proces, jehož cílem je zjednodušit jednotlivé objekty v závislosti na velikosti měřítka mapy. Se zmenšením měřítka (oddálením mapy) tedy budou zakresleny objekty méně detailněji. Generalizace budov zahrnuje různé postupy, mezi něž patří zjednodušení geometrie, seskupování blízkých objektů, výběr zobrazovaných objektů, změna velikosti a polohy, či zachování charakteristických rysů. Tyto metody jsou vždy prováněny tak, aby byly zachovány topologické vztahy objektů.
+
+K automatizaci generalizace jsou používány nejčastěji algoritmy \textit{Minimum Area Enclosing/Bounding Rectangle}, \textit{Principal Component Analysis}, \textit{Longest Edge}, \textit{Weighted Bisector} nebo \textit{Wall Average}. Všechny tyto algoritmy jsou také využity v rámci řešení této úlohy, kdy jsou budovy generalizovány do úrovně LOD0. Každá budova je nahrazena obdélníkem orientovaným v obou hlavních směrech, se středem v těžišti budovy. Plocha výsledného obdélníku je přitom shodná s plochou původní budovy. Výsledné vrcholy $V'_i$ obdélníku jsou spočteny pomocí těžiště $T$, směrových vektorů $u_i$ a poměru ploch $k$:
+\begin{equation}
+V'_i = T + u'_i = T + \sqrt{k}\,u_i, \quad \text{kde} \quad k = \frac{A_b}{A}, \quad u_i = V_i - T.
+\end{equation}
+
+\subsection{Konvexní obálka}
+Konvexní obálka je taková množina bodů, která je minimální a všechny body leží uvnitř tohoto konvexního mnohoúhelníku. Zároneň platí, že všechny vnitřní úhly konvexního mnohoúhelníku nejsou větší než $180^{\circ}$. Konvexní obálka slouží jako pomocná struktura algoritmu Minimum Area Bounding Rectangle. Metody pro konstrukci konvexní obálky jsou například \textit{Jarvis Scan}, \textit{Graham Scan}, \textit{Quick Hull} nebo \textit{Divide and Conquer}.
+
+\subsubsection{Jarvis Scan}
+Jarvis Scan (obrázek 1) je metoda konstrukce konvexní obálky vhodná pro množiny bodů menších velikostí s časovou složitostí $O(n \cdot h)$. Algoritmus vezme první bod $q$ (pivot) o minimální $y$-souřadnici, ležící na konvexní obálce. Následně jsou do konvexní obálky přidávány body, které svírají s poslední dvojicí bodů v obálce největší úhel $\omega$:
+\begin{equation}
+p_{j+1} = \arg \max_{\forall p_i \in P} \angle(p_{j-1}, p_j, p_i)
+\end{equation}
+Tentoto proces je opakován do té doby, než je dosaženo počátečního bodu $q$.
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.6\textwidth]{Jarvis.png} 
+\caption{\textit{Jarvis Scan (zdroj: Erickson 2008)}}
+\end{figure}
+
+\subsubsection{Graham Scan}
+Graham Scan je oproti předchozí metodě vhodný pro větší množiny bodů, díky jeho časové složitosti $O(n \cdot \log n)$. Nejprve je stejným způsobem jako u metody Jarvis Scan nalezen pivot. Poté jsou všechny body seřazeny vzestupně podle velikosti úhlu $\omega$, což je úhel, který svírají s přímkou procházející pivotem a rovnoběžnou s osou $x$. Následně je u seřazených bodů vyhodnocováno kritérium levotočivosti:
+\begin{equation}
+p_j \begin{cases} \notin \mathcal{H}, & p_{j+1} \in \sigma_r(p_{j-1}, p_j), \\ ? \in \mathcal{H}, & p_{j+1} \in \sigma_l(p_{j-1}, p_j). \end{cases}
+\end{equation}
+Pokud se následující bod nachází v pravé polorovině od přímky procházející posledními dvěma body, je do konvexní obálky přidán právě procházený bod. Poslední bod je naopak z konvexní obálky vyjmut, jak je vidět na obrázku 2.
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.8\textwidth]{Graham.png} 
+\caption{\textit{Graham Scan (zdroj: Erickson 2008)}}
+\end{figure}
+
+\subsection{Minimum Area Bounding Rectangle}
+Tento algoritmus je primárně určen pro detekci natočení budovy. Nejdříve je kolem množiny bodů $P$ vytvořena konvexní obálka, která je následně rotována o úhel $-\sigma$ tak, aby byla postupně každá hrana rovnoběžná s osou $x$:
+\begin{equation}
+P_0 = R(-\sigma)P \Rightarrow \begin{bmatrix} x_r \\ y_r \end{bmatrix} = \begin{bmatrix} \cos(-\sigma) & -\sin(-\sigma) \\ \sin(-\sigma) & \cos(-\sigma) \end{bmatrix} \begin{bmatrix} x \\ y \end{bmatrix}
+\end{equation}
+Zároveň je po každém takovém otočení spočtena plocha obdélníku. Jako konečný výsledek je brán obdélník s nejmenší plochou. Nakonec je tento obdélník je otočen zpět o úhel $\sigma$. Stejný princip rotace je také využit u zbylých zprcovaných algoritmů generalizace.
+
+\subsection{Principal Component Analysis}
+Metoda hlavních komponent (PCA) využívá singulární rozklad kovarianční matice $C$:
+\begin{equation}
+C = U\Sigma V^T, \quad C = \begin{bmatrix} C(A,A) & C(A,B) \\ C(B,A) & C(B,B) \end{bmatrix}
+\end{equation}
+kde $U$ a $V$ jsou ortogonální matice vlastních vektorů a $\Sigma$ je diagonální matice se čtverci velikostí vlastních vektorů. Hlavní směr $\sigma$ budovy je dán směrem prvního vlastního vektoru.
+
+\subsection{Longest Edge}
+Metoda Longest Edge předpokládá, že hlavní směr budovy je určen její nejdelší hranou. Druhý hlavní směr je na něj kolmý. Jedná se o nejjednodušší přístup k detekci hlavního směru, který však nemusí poskytovat dobré výsledky u budov s nepravidelným půdorysem, kde nejdelší hrana nemusí odpovídat skutečné orientaci budovy. Směrnice $\sigma$ nejdelší hrany je vypočtena z jejích koncových bodů $a$, $b$:
+\begin{equation}
+\sigma = \text{atan2}(b_y - a_y,\; b_x - a_x)
+\end{equation}
+Budova je následně otočena o úhel $-\sigma$, kolem takto natočené budovy je vytvořen Min-max box a ten je otočen zpět o úhel $\sigma$.
+
+\subsection{Wall Average}
+Tato metoda funguje nejlépe za předpokladu pravoúhlých hran budov. Pro každý vrchol se spočítá vnitřní úhel $\omega_i$ a z něj orientovaný zbytek po dělení $\frac{\pi}{2}$:
+\begin{equation}
+k_i = \frac{2\omega_i}{\pi}, \quad r_i = (k_i - \lfloor k_i \rfloor)\frac{\pi}{2}
+\end{equation}
+Pokud $r_i > \frac{\pi}{4}$, provedeme korekci $r_i = r_i - \frac{\pi}{2}$. Hlavní směr budovy se spočítá jako vážený průměr zbytků, kde vahou jsou délky stran:
+\begin{equation}
+\sigma = \sigma_{1,2} + \sum_{i=1}^{n} \frac{r_i s_i}{s_i}
+\end{equation}
+
+\subsection{Weighted Bisector}
+Metoda Weighted Bisector hledá dvě nejdelší úhlopříčky polygonu budovy. Tyto úhlopříčky musí být spojnicemi dvou vrcholů polygonu a nesmí protínat žádnou z hran polygonu, což je ověřeno determinantovým testem. Hlavní směr $\sigma$ se spočítá váženým průměrem směrnic dvou nejdelších úhlopříček, kde vahami jsou jejich délky $d_1$ a $d_2$:
+\begin{equation}
+\sigma = \frac{d_1\sigma_1 + d_2\sigma_2}{d_1 + d_2}
+\end{equation}
+
+\subsection{Hodnocení efektivity}
+Pro hodnocení efektivity detekce hlavních směrů byla použita střední hodnota čtverců úhlových odchylek jednotlivých segmentů:
+\begin{equation}
+\Delta\sigma = \frac{\pi}{2n}\sqrt{\sum_{i=1}^{n}(r_i -r)^2}
+\end{equation}
+V kartografické praxi je běžná akceptace objektů s odchylkou $\Delta\sigma < 10^{\circ}$.
+
+\newpage
+\section{Popisy algoritmů formálním jazykem}
+
+\subsection{Jarvis Scan}
+\begin{algorithm}[H] \caption{Jarvis Scan}
+\begin{algorithmic}[1]
+\Require polygon $pol$
+\Ensure convex hull $ch$
+\State remove duplicate points from $pol$
+\If{$|pol| < 3$ \textbf{or} points are collinear} \Return empty polygon \EndIf
+\State find pivot $q$ with minimum $y$-coordinate (if tie, minimum $x$)
+\State find point $s$ with minimum $x$-coordinate
+\State $p_j \gets q$, $p_{j-1} \gets (s_x, q_y)$, add $p_j$ to $ch$
+\While{true}
+    \State $\omega_{max} \gets 0$
+    \For{each vertex $p_i \in pol$, $p_i \neq p_j$}
+        \State compute $\omega = \angle(p_{j-1}, p_j, p_i)$
+        \If{$\omega > \omega_{max}$} update $\omega_{max}$ and index \EndIf
+    \EndFor
+    \State add point with $\omega_{max}$ to $ch$, $p_{j-1} \gets p_j$, $p_j \gets$ new point
+    \If{$p_j = q$} \textbf{break} \EndIf
+\EndWhile
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Graham Scan}
+\begin{algorithm}[H] \caption{Graham Scan}
+\begin{algorithmic}[1]
+\Require polygon $pol$
+\Ensure convex hull $ch$
+\State remove duplicate points from $pol$
+\If{$|pol| < 3$ \textbf{or} points are collinear} \Return empty polygon \EndIf
+\State find pivot $q$ with minimum $y$-coordinate
+\State add $q$ to $ch$
+\For{each vertex $p_i \neq q$}
+    \State compute angle $\omega$ relative to horizontal vector from $q$
+    \State if same $\omega$, keep the point farther from $q$
+\EndFor
+\State sort points by $\omega$ ascending, add first to $ch$
+\For{remaining sorted points $p_j$}
+    \While{$|ch| > 1$ \textbf{and} $p_j$ lies to the right of last 2 points in $ch$}
+        \State remove last point from $ch$
+    \EndWhile
+    \State add $p_j$ to $ch$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Minimum Area Bounding Rectangle}
+\begin{algorithm}[H] \caption{Minimum Area Bounding Rectangle}
+\begin{algorithmic}[1]
+\Require polygon $building$
+\Ensure minimum bounding rectangle $mbr$
+\State create convex hull $ch$ (Jarvis or Graham)
+\State initialize $MMB_{min}$ and $area_{min}$
+\For{each edge of convex hull}
+    \State compute direction $\sigma$
+    \State rotate $ch$ by $-\sigma$, construct MMB, compute area
+    \If{$area < area_{min}$} update $area_{min}$, $MMB_{min}$, $\sigma_{min}$ \EndIf
+\EndFor
+\State rotate $MMB_{min}$ back by $\sigma_{min}$
+\State resize area to match building area
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{PCA}
+\begin{algorithm}[H] \caption{Principal Component Analysis}
+\begin{algorithmic}[1]
+\Require polygon $building$
+\Ensure generalized rectangle $mbr$
+\State create matrix $A$ from point coordinates
+\State compute covariance matrix $C$, perform SVD decomposition
+\State compute direction $\sigma$ from eigenvectors
+\State rotate $building$ by $-\sigma$, compute MMB
+\State rotate MMB back by $\sigma$
+\State resize area to match building area
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Longest Edge}
+\begin{algorithm}[H] \caption{Longest Edge}
+\begin{algorithmic}[1]
+\Require polygon $building$
+\Ensure generalized rectangle $mbr$
+\State $longest \gets 0$
+\For{each edge of polygon}
+    \If{edge length $>$ $longest$} update $longest$ and endpoints $a$, $b$ \EndIf
+\EndFor
+\State $\sigma \gets \text{atan2}(b_y - a_y, b_x - a_x)$
+\State rotate $building$ by $-\sigma$, compute MMB, rotate back by $\sigma$
+\State resize area to match building area
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Wall Average}
+\begin{algorithm}[H] \caption{Wall Average}
+\begin{algorithmic}[1]
+\Require polygon $building$
+\Ensure generalized rectangle $mbr$
+\State compute directions $\sigma_i$ of all edges
+\State $\sigma_{ref} \gets \sigma_0$ (direction of first edge)
+\For{each vertex $i$}
+    \State $\omega_i \gets |\sigma_i - \sigma_{i-1}|$
+    \State $k_i \gets 2\omega_i / \pi$, $r_i \gets (k_i - \lfloor k_i \rfloor) \cdot \pi/2$
+    \If{$r_i > \pi/4$} $r_i \gets r_i - \pi/2$ \EndIf
+    \State $s_i \gets$ edge length from vertex $i$
+\EndFor
+\State $\sigma \gets \sigma_{ref} + \sum r_i s_i / \sum s_i$
+\State rotate, MMB, back rotation, resize
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Weighted Bisector}
+\begin{algorithm}[H] \caption{Weighted Bisector}
+\begin{algorithmic}[1]
+\Require polygon $building$ ($\geq 4$ vertices)
+\Ensure generalized rectangle $mbr$
+\State find all diagonals, sort descending by length
+\For{each diagonal}
+    \If{does not intersect any edge (determinant test)}
+        \State store length $d_k$ and direction $\sigma_k$
+    \EndIf
+    \If{2 valid diagonals found}
+        \State $\sigma \gets (d_1\sigma_1 + d_2\sigma_2) / (d_1 + d_2)$
+        \State rotate, MMB, back rotation, resize
+    \EndIf
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\newpage
+\section{Vstupní data a Aplikace}
+Vstupními daty jsou polygonové vrstvy budov ve formátu shapefile, získané z datové sady ČÚZK (katastrální mapa). Testování bylo provedeno nad třemi datovými sadami reprezentujícími různé typy zástavby:
+\begin{itemize}
+\item \textbf{Josefov} -- historické centrum s nepravidelnými půdorysy budov,
+\item \textbf{Kročehlavy} -- sídlištní zástavba s pravidelnými tvary,
+\item \textbf{Suchdol} -- izolovaná zástavba s rozptýlenými budovami.
+\end{itemize}
+
+Geografické souřadnice jsou při načtení převedeny do souřadnic obrazovky s uniformním měřítkem, které zachovává poměr stran vstupních dat bez ohledu na rozměry okna aplikace. Data jsou vycentrována s okraji 20\,px.
+
+Po spuštění skriptu \textit{MainForm.py} se otevře okno aplikace. V záložce \textit{File} jsou umístěny funkce \textit{Open} a \textit{Exit}. V záložce \textit{Simplify} jsou algoritmické funkce \textit{MBR}, \textit{PCA}, \textit{Longest Edge}, \textit{Wall Average}, \textit{Weighted Bisector} a funkce na přepínání metody tvorby konvexní obálky \textit{Jarvis/Graham Scan}. Poslední záložka \textit{View} obsahuje funkce \textit{Clear results} a \textit{Clear all}. Všechny funkce mají ikonku nacházející se na nástrojové liště. Aplikaci lze ukončit funkcí \textit{Exit} nebo tlačítkem v pravém horním rohu.
+
+Po kliknutí na funkci \textit{Open} se otevře nabídka pro vybrání požadovaného souboru ve formátu shapefile. V aplikaci lze též kreslit svůj vlastní polygon, jestliže není otevřen shapefile soubor. Kliknutím na funkci \textit{Clear results} se smaže generalizovaná budova. Pro nahrání nebo nakreslení jiného polygonu je zapotřebí spustit funkci \textit{Clear all}. Po provedení generalizace se zobrazí dialogové okno s hodnocením efektivity (procento akceptovaných budov s $\Delta\sigma < 10^{\circ}$).
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=\textwidth]{GUI_ukazka.png} 
+\caption{\textit{Ukázka Aplikace}} 
+\end{figure}
+
+\section{Tvorba spustitelného souboru}
+V souladu se zadáním byla vytvořena plně funkční a přeložená aplikace ve formě binárního souboru (\texttt{.exe}), která nevykazuje chyby. Tento spustitelný soubor pro operační systém Windows integruje veškeré nezbytné knihovny a datové složky, což umožňuje jeho okamžité spuštění bez nutnosti instalace interpretu jazyka Python.
+
+K vytvoření binárního souboru byl využit nástroj \textit{Auto-py-to-exe}, což je grafické rozhraní nad knihovnou \textit{PyInstaller}. Vzhledem ke komplexnosti použitých knihoven (\textit{PyQt6, GeoPandas, NumPy}) a přítomnosti externích grafických dat byl proces překladu optimalizován pomocí následujících kroků:
+
+\begin{itemize}
+    \item \textbf{Izolace prostředí} -- Pro minimalizaci velikosti výsledného souboru a zamezení konfliktů verzí bylo využito virtuální prostředí (venv) v rámci distribuce \textit{Conda}, obsahující pouze nezbytné závislosti.
+    \item \textbf{Ošetření cest k datům} -- Jelikož \textit{PyInstaller} při spuštění \texttt{.exe} souboru rozbaluje data do dočasného adresáře, byla do skriptu \texttt{MainForm.py} implementována funkce \texttt{resource\_path(relative\_path)}. Tato funkce dynamicky určuje absolutní cestu k ikonám, čímž předchází chybám při načítání grafiky.
+    \newpage
+    
+    \item \textbf{Konfigurace sestavení} -- Výsledný soubor byl sestaven s parametrem \texttt{--onefile} (všechna data v jednom souboru) a \texttt{--windowed}, který u aplikací s grafickým rozhraním potlačuje otevírání příkazového řádku na pozadí.
+\end{itemize}
+
+\section{Dokumentace}
+
+\subsection{Třída Algorithms (\texttt{algorithms.py})}
+Třída \texttt{Algorithms} obsahuje logiku generalizace a geometrických výpočtů.
+
+\begin{itemize}
+\item \texttt{get2VectorsAngle(p1, p2, p3, p4)} -- spočítá úhel mezi vektory $\vec{p_1p_2}$ a $\vec{p_3p_4}$ pomocí skalárního součinu.
+\item \texttt{removeDuplicatePoints(pol)} -- odstraní duplicitní body z polygonu.
+\item \texttt{arePointsCollinear(pol)} -- ověří, zda jsou všechny body kolineární pomocí cross productu.
+\item \texttt{createCHJ(pol)} -- zkonstruuje konvexní obálku metodou Jarvis Scan s ošetřením singularit.
+\item \texttt{createCHG(pol)} -- zkonstruuje konvexní obálku metodou Graham Scan s ošetřením singularit.
+\item \texttt{calculateDistance(p1, p2)} -- spočítá euklidovskou vzdálenost dvou bodů.
+\item \texttt{getPointLinePosition(p, p1, p2)} -- determinant pro test poloroviny.
+\item \texttt{createMMB(pol)} -- spočítá min-max box a jeho plochu.
+\item \texttt{rotatePolygon(pol, sig)} -- otočí polygon o daný úhel.
+\item \texttt{createMBR(building, use\_graham)} -- vytvoří minimální ohraničující obdélník pomocí opakované konstrukce MMB nad konvexní obálkou.
+\item \texttt{getArea(pol)} -- spočítá plochu polygonu.
+\item \texttt{resizeRectangle(building, mbr)} -- přeškáluje obdélník tak, aby měl stejnou plochu jako budova.
+\item \texttt{simplifyBuildingMBR(building, use\_graham)} -- generalizace metodou MBR.
+\item \texttt{simplifyBuildingPCA(building)} -- generalizace metodou PCA.
+\item \texttt{simplifyBuildingLE(building)} -- generalizace metodou Longest Edge.
+\item \texttt{simplifyBuildingWA(building)} -- generalizace metodou Wall Average.
+\item \texttt{simplifyBuildingWB(building)} -- generalizace metodou Weighted Bisector.
+\item \texttt{computeDeltaSigma(building, sigma)} -- spočítá střední hodnotu čtverců úhlových odchylek pro hodnocení efektivity.
+\end{itemize}
+
+\subsection{Třída Draw (\texttt{draw.py})}
+Třída \texttt{Draw} zajišťuje veškeré grafické operace.
+
+\begin{itemize}
+\item \texttt{loadShapefile(file\_name)} -- načítá SHP soubor přes GeoPandas, transformuje souřadnice s uniformním měřítkem zachovávajícím poměr stran.
+\item \texttt{paintEvent(e)} -- vykreslí budovy žlutou barvou a výsledné MBR červenou barvou.
+\item \texttt{mousePressEvent(e)} -- při kliknutí přidá vrchol manuálního polygonu.
+\item \texttt{setMBR(mbr)} / \texttt{setMBRs(mbrs)} -- nastaví výsledné obdélníky pro vykreslení.
+\item \texttt{getBuilding()} / \texttt{getBuildings()} -- vrátí manuální polygon / seznam načtených budov.
+\item \texttt{clearResult()} -- smaže výsledky generalizace.
+\item \texttt{clearAll()} -- smaže veškerá data včetně budov.
+\end{itemize}
+\newpage
+
+\subsection{Třída MainForm (\texttt{MainForm.py})}
+Třída \texttt{MainForm} řídí inicializaci hlavního okna a propojuje třídy \texttt{Draw} a \texttt{Algorithms}.
+
+\begin{itemize}
+\item \texttt{simplifyBuildingMBRClick()} -- generalizace všech budov metodou MBR, evaluace a zobrazení výsledků.
+\item \texttt{simplifyBuildingPCAClick()} -- generalizace všech budov metodou PCA, evaluace a zobrazení výsledků.
+\item \texttt{simplifyBuildingLEClick()} -- generalizace všech budov metodou Longest Edge, evaluace a zobrazení výsledků.
+\item \texttt{simplifyBuildingWAClick()} -- generalizace všech budov metodou Wall Average, evaluace a zobrazení výsledků.
+\item \texttt{simplifyBuildingWBClick()} -- generalizace všech budov metodou Weighted Bisector, evaluace a zobrazení výsledků.
+\item \texttt{openClick()} -- otevře dialog pro výběr souboru a zavolá \texttt{loadShapefile}.
+\item \texttt{clearResultsClick()} -- smaže výsledky generalizace.
+\item \texttt{clearAllClick()} -- smaže veškerá data.
+\end{itemize}
+
+\newpage
+\section{Výsledky}
+Efektivita detekce hlavních směrů budov byla vyhodnocena pomocí střední hodnoty čtverců úhlových odchylek (rovnice 10). V tabulce je uvedeno procento budov, pro které platí $\Delta\sigma < 10^{\circ}$.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{|l|c|c|c|c|c|}
+\hline
+\textbf{Katastrální území} & \textbf{MBR} & \textbf{PCA} & \textbf{LE} & \textbf{WA} & \textbf{WB} \\
+\hline
+Josefov & 98,8\,\% & 66,7\,\% & 97,5\,\% & 93,8\,\% & 58,0\,\% \\
+\hline
+Kročehlavy & 100,0\,\% & 92,6\,\% & 100,0\,\% & 100,0\,\% & 71,8\,\% \\
+\hline
+Suchdol & 95,5\,\% & 55,7\,\% & 95,5\,\% & 89,8\,\% & 56,8\,\% \\
+\hline
+\textbf{průměr} & 98,1\,\% & 71,7\,\% & 97,7\,\% & 94,5\,\% & 62,2\,\% \\
+\hline
+\end{tabular}
+\caption{Hodnocení efektivity generalizačních metod ($\Delta\sigma < 10^{\circ}$)}
+\end{table}
+
+
+Nejlepšího hodnocení dosáhl algoritmus \textbf{Minimum Area Bounding Rectangle} s průměrnou úspěšností 98,1\,\%. Metoda poskytuje celkově velmi dobré výsledky pro všechny typy zástavby. Velmi podobných výsledků dosáhla i metoda \textbf{Longest Edge} (97,7\,\%), která se vizuálně od MBR výslednou generalizací budov liší pouze nepatrně.
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5a77ff.png} 
+\caption{\textit{Ukázka metody MBR pro historickou zástavbu Josefova (úspěšnost 98,8\,\%)}} 
+\end{figure}
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5a7744.png} 
+\caption{\textit{Výsledek metody Longest Edge pro lokalitu Josefova}} 
+\end{figure}
+
+Metoda \textbf{Wall Average} dosáhla rovněž dobrých výsledků (94,5\,\%), přičemž u pravoúhlé sídlištní zástavby Kročehlav dosáhla 100\,\% úspěšnosti. U izolované zástavby Suchdolu s nepravidelnějšími půdorysy klesla na 89,8\,\%.
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5a7b26.png} 
+\caption{\textit{Výsledek metody Wall Average na sídlišti Kročehlavy (úspěšnost 100\,\%)}} 
+\end{figure}
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5a7bfb.png} 
+\caption{\textit{Generalizace metodou Wall Average v lokalitě Suchdol}} 
+\end{figure}
+
+Metoda \textbf{PCA} dosáhla výrazně horších výsledků (71,7\,\%). Při její aplikaci dochází k nevhodnému natočení budov, které mají výstupky nebo nepravidelný tvar, což je patrné zejména u Suchdolu (55,7\,\%).
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5a7ee8.png} 
+\caption{\textit{Výsledek při použití metody PCA na členité budovy v Suchdole}} 
+\end{figure}
+\newpage
+
+Nejhorších výsledků dosáhla metoda \textbf{Weighted Bisector} (62,2\,\%). Problém spočívá v tom, že dvě nejdelší úhlopříčky nemusí vždy reprezentovat hlavní směr budovy, zejména u složitějších půdorysů.
+
+\begin{figure}[H] 
+\centering 
+\includegraphics[width=0.70\textwidth]{image_5b54fe.png} 
+\caption{\textit{Výsledek metody Weighted Bisector pro lokalitu Suchdol (úspěšnost 56,8\,\%)}} 
+\end{figure}
+
+\section{Závěr}
+V rámci řešení problému generalizace budov LOD0 byly implementovány algoritmy Minimum Area Bounding Rectangle, Principal Component Analysis, Longest Edge, Wall Average a Weighted Bisector. Pro konstrukci konvexní obálky byly implementovány metody Jarvis Scan a Graham Scan s ošetřením singulárních případů (duplicitní body, kolineární body, méně než 3 body, shodný minimální $y$ u pivotu). Vstupní data jsou načítána ze souboru shapefile s transformací souřadnic zachovávající poměr stran.
+
+Jako možné vylepšení skriptu by byla možnost přibližování a pohybování se v okně aplikace, aby bylo možné si prohlédnout detailní rozdíl jednotlivých metod generalizace od vstupních budov.
+
+\newpage
+\renewcommand{\refname}{Zdroje} 
+\begin{thebibliography}{9}
+
+\bibitem{bayer2026} BAYER, T. (2026): \textit{Konvexní obálka množiny bodů}. Přednáška pro předmět Algoritmy počítačové kartografie, Katedra aplikované geoinformatiky a kartografie, Přírodovědecká fakulta UK.
+\bibitem{cuzk} ČÚZK (2026): \textit{Katastrální mapa}. Český úřad zeměměřický a katastrální. \url{https://www.cuzk.cz/}
+\bibitem{erickson2008} ERICKSON, J. (2008): \textit{Computational Geometry -- Lecture 1: Convex Hulls}. University of Illinois at Urbana-Champaign. Dostupné z: \url{http://jeffe.cs.illinois.edu/teaching/compgeom/2008/notes/01-convexhull.pdf}
+\end{thebibliography}
+\end{document}
